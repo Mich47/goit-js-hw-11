@@ -130,32 +130,32 @@ class Gallery {
   }
 
   markupGallery(dataArr) {
-    this.gallery.append(...dataArr.map(this.markupFotoCard.bind(this)));
-    // this.gallery.insertAdjacentHTML(
-    //   'beforeend',
-    //   dataArr.map(this.markupFotoCard.bind(this)).join('')
-    // );
+    // this.gallery.append(...dataArr.map(this.markupFotoCard.bind(this)));
+    this.gallery.insertAdjacentHTML(
+      'beforeend',
+      dataArr.map(this.markupFotoCard.bind(this)).join('')
+    );
   }
 
   markupFotoCard(imgObj) {
-    const div = document.createElement('div');
-    div.classList.add('gallery-item');
+    // const div = document.createElement('div');
+    // div.classList.add('gallery-item');
 
-    const divThumb = document.createElement('div');
-    divThumb.classList.add('gallery-thumb');
+    // const divThumb = document.createElement('div');
+    // divThumb.classList.add('gallery-thumb');
 
-    const img = document.createElement('img');
-    img.classList.add('gallery-img');
-    img.src = imgObj.webformatURL;
-    img.alt = imgObj.tags;
+    // const img = document.createElement('img');
+    // img.classList.add('gallery-img');
+    // img.src = imgObj.webformatURL;
+    // img.alt = imgObj.tags;
 
-    const divOverlay = document.createElement('div');
-    divOverlay.classList.add('gallery-img-overlay');
+    // const divOverlay = document.createElement('div');
+    // divOverlay.classList.add('gallery-img-overlay');
 
-    divOverlay.append(this.markupInfoList(imgObj));
-    divThumb.append(img, divOverlay);
-    div.append(divThumb);
-    return div;
+    // divOverlay.append(this.markupInfoList(imgObj));
+    // divThumb.append(img, divOverlay);
+    // div.append(divThumb);
+    // return div;
 
     return `<div class="gallery-item">
       <div class="gallery-thumb">
@@ -172,37 +172,36 @@ class Gallery {
   }
 
   markupInfoList({ likes, views, comments, downloads }) {
-    console.log('infoSvg: ', svg);
-    const info = [
-      {
-        title: 'Likes',
-        infoSvg: `${svg}#icon-like`,
-        infoDesc: likes,
-      },
-      {
-        title: 'Views',
-        infoSvg: `${svg}#icon-view`,
-        infoDesc: views,
-      },
-      {
-        title: 'Comments',
-        infoSvg: `${svg}#icon-comment`,
-        infoDesc: comments,
-      },
-      {
-        title: 'Downloads',
-        infoSvg: `${svg}#icon-download`,
-        infoDesc: downloads,
-      },
-    ];
-    const ul = document.createElement('ul');
-    ul.classList.add('list', 'info-list');
+    // const info = [
+    //   {
+    //     title: 'Likes',
+    //     infoSvg: `${svg}#icon-like`,
+    //     infoDesc: likes,
+    //   },
+    //   {
+    //     title: 'Views',
+    //     infoSvg: `${svg}#icon-view`,
+    //     infoDesc: views,
+    //   },
+    //   {
+    //     title: 'Comments',
+    //     infoSvg: `${svg}#icon-comment`,
+    //     infoDesc: comments,
+    //   },
+    //   {
+    //     title: 'Downloads',
+    //     infoSvg: `${svg}#icon-download`,
+    //     infoDesc: downloads,
+    //   },
+    // ];
+    // const ul = document.createElement('ul');
+    // ul.classList.add('list', 'info-list');
 
-    const markupInfo = info.map(item => this.markupInfoItem(item));
+    // const markupInfo = info.map(item => this.markupInfoItem(item));
 
-    ul.append(...markupInfo);
-    console.log('ul -> ', ul);
-    return ul;
+    // ul.append(...markupInfo);
+    // console.log('ul -> ', ul);
+    // return ul;
 
     return `<ul class="list info-list">
       <li class="info-item" title="Likes">
