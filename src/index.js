@@ -9,7 +9,7 @@ import 'simplelightbox/dist/simple-lightbox.min.css';
 
 class Gallery {
   DEBOUNCE_DELAY = 300;
-  THROTTLE_DELAY = 200;
+  THROTTLE_DELAY = 300;
 
   constructor({ searchForm, gallery }) {
     this.searchForm = searchForm;
@@ -56,50 +56,45 @@ class Gallery {
 
   async onSearchForm(event) {
     event.preventDefault();
+    this.removeScrollListeners();
+
+    // if (this.gallerySimple) {
+    //   // this.gallerySimple.destroy();
+    //   this.gallerySimple.refresh();
+    // }
+    // console.log('this.gallerySimple ->', Boolean(this.gallerySimple));
 
     await this.clearGallery();
     await this.setStartValue(event);
     await this.getImages();
     await this.addScrollListeners();
 
-    this.gallerySimple = new SimpleLightbox('.gallery a', {
-      captionsData: 'alt',
-      captionDelay: 250,
-      scrollZoom: false,
-    });
+    if (!this.gallerySimple) {
+      this.gallerySimple = new SimpleLightbox('.gallery a', {
+        captionsData: 'alt',
+        captionDelay: 250,
+        scrollZoom: false,
+      });
+    }
+    this.gallerySimple.refresh();
+    // await console.log('this.gallerySimple ', this.gallerySimple);
+
+    // await this.gallerySimple.destroy();
+    // console.log('this.gallerySimple ', this.gallerySimple);
   }
 
   onGalleryImageClick(event) {
     event.preventDefault();
-    console.log('event.target -> ', event.target);
 
-    if (!event.target.classList.contains('gallery__image')) {
-      return;
-    }
-
-    // let gallery = new SimpleLightbox('.gallery a', {
-    //   captionsData: 'alt',
-    //   captionDelay: 250,
-    // });
-
-    // this.gallerySimple.refresh();
-
-    // console.log('this.gallerySimple ', this.gallerySimple);
-    // this.gallerySimple.open();
-
-    // gallery.on('closed.simplelightbox', function () {
-    //   gallery.destroy();
-    // });
+    // if (!event.target.classList.contains('gallery__image')) {
+    //   return;
+    // }
   }
 
   async getImages() {
-    let imagesArr = null;
+    // let imagesArr = null;
     try {
-      imagesArr = await this.fetchImages(this.searchValue, this.page);
-
-      if (!imagesArr) {
-        return;
-      }
+      const imagesArr = await this.fetchImages(this.searchValue);
 
       if (imagesArr.length === 0) {
         throw new Error(
@@ -108,13 +103,18 @@ class Gallery {
       }
 
       this.page += 1;
-      this.markupGallery(imagesArr);
+      await this.markupGallery(imagesArr);
+
+      if (this.gallerySimple) {
+        this.gallerySimple.refresh();
+      }
     } catch (error) {
+      console.log('error 1', error.message);
       Notify.failure(error.message);
     }
   }
 
-  async fetchImages(queryName, page) {
+  async fetchImages(queryName) {
     if (this.page > this.totalHits) {
       this.removeScrollListeners();
 
@@ -125,13 +125,13 @@ class Gallery {
     }
     try {
       const response = await axios.get(
-        `https://pixabay.com/api/?key=31303071-b4e5345642141d1af1d763c20&orientation=horizontal&safesearch=true&image_type=photo&per_page=40&q=${queryName}&page=${page}`
+        `https://pixabay.com/api/?key=31303071-b4e5345642141d1af1d763c20&orientation=horizontal&safesearch=true&image_type=photo&per_page=40&q=${queryName}&page=${this.page}`
       );
       console.log('response axios ->', response);
 
-      this.totalHits = Math.ceil(response.data.totalHits / 40);
+      this.totalHits = Math.floor(response.data.totalHits / 40);
       console.log('this.total ', this.totalHits);
-      console.log('page ', page);
+      console.log('page ', this.page);
 
       const dataArr = response.data.hits;
       console.log('dataArr ->', dataArr);
@@ -143,7 +143,7 @@ class Gallery {
     }
   }
 
-  async checkScrollPosition() {
+  checkScrollPosition() {
     const { scrollHeight, scrollTop, clientHeight } = document.documentElement;
     // console.log(scrollHeight); // Висота всього документа в пікселях
     // console.log(scrollTop); // Скрол від верху в пікселях
@@ -157,8 +157,7 @@ class Gallery {
     const position = scrollTop + clientHeight;
 
     if (position >= threshold) {
-      await this.getImages();
-      this.gallerySimple.refresh();
+      this.getImages();
     }
   }
 
