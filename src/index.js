@@ -14,6 +14,7 @@ class Gallery {
   constructor({ searchForm, gallery }) {
     this.searchForm = searchForm;
     this.gallery = gallery;
+    this.gallerySimple = null;
     this.totalHits = 1;
     this.page = 1;
     this.searchValue = null;
@@ -26,6 +27,7 @@ class Gallery {
 
   addListeners() {
     this.searchForm.addEventListener('submit', this.onSearchForm.bind(this));
+    this.gallery.addEventListener('click', this.onGalleryImageClick.bind(this));
   }
 
   addScrollListeners() {
@@ -35,6 +37,11 @@ class Gallery {
     );
 
     window.addEventListener('scroll', this.clickHandler);
+
+    // window.addEventListener(
+    //   'scroll',
+    //   debounce(this.smoothScroll.bind(this), this.DEBOUNCE_DELAY)
+    // );
   }
 
   removeScrollListeners() {
@@ -47,13 +54,42 @@ class Gallery {
     this.searchValue = event.target.elements.searchQuery.value;
   }
 
-  onSearchForm(event) {
+  async onSearchForm(event) {
     event.preventDefault();
 
-    this.clearGallery();
-    this.setStartValue(event);
-    this.getImages();
-    this.addScrollListeners();
+    await this.clearGallery();
+    await this.setStartValue(event);
+    await this.getImages();
+    await this.addScrollListeners();
+
+    this.gallerySimple = new SimpleLightbox('.gallery a', {
+      captionsData: 'alt',
+      captionDelay: 250,
+      scrollZoom: false,
+    });
+  }
+
+  onGalleryImageClick(event) {
+    event.preventDefault();
+    console.log('event.target -> ', event.target);
+
+    if (!event.target.classList.contains('gallery__image')) {
+      return;
+    }
+
+    // let gallery = new SimpleLightbox('.gallery a', {
+    //   captionsData: 'alt',
+    //   captionDelay: 250,
+    // });
+
+    // this.gallerySimple.refresh();
+
+    // console.log('this.gallerySimple ', this.gallerySimple);
+    // this.gallerySimple.open();
+
+    // gallery.on('closed.simplelightbox', function () {
+    //   gallery.destroy();
+    // });
   }
 
   async getImages() {
@@ -107,7 +143,7 @@ class Gallery {
     }
   }
 
-  checkScrollPosition() {
+  async checkScrollPosition() {
     const { scrollHeight, scrollTop, clientHeight } = document.documentElement;
     // console.log(scrollHeight); // Висота всього документа в пікселях
     // console.log(scrollTop); // Скрол від верху в пікселях
@@ -121,8 +157,28 @@ class Gallery {
     const position = scrollTop + clientHeight;
 
     if (position >= threshold) {
-      this.getImages();
+      await this.getImages();
+      this.gallerySimple.refresh();
     }
+  }
+
+  smoothScroll() {
+    console.log(
+      'object',
+      document
+        .querySelector('.gallery')
+        .firstElementChild.getBoundingClientRect()
+    );
+
+    const { height: cardHeight } = document
+      .querySelector('.gallery')
+      .firstElementChild.getBoundingClientRect();
+
+    console.log('cardHeight ', cardHeight);
+    window.scrollBy({
+      top: cardHeight * 2,
+      behavior: 'smooth',
+    });
   }
 
   clearGallery() {
@@ -157,14 +213,16 @@ class Gallery {
     // div.append(divThumb);
     // return div;
 
-    return `<div class="gallery-item">
-      <div class="gallery-thumb">
-        <img
-          class="gallery-img"
-          src="${imgObj.webformatURL}"
-          alt="${imgObj.tags}"
-        />
-        <div class="gallery-img-overlay">
+    return `<div class="gallery__item">
+      <div class="gallery__thumb">
+        <a class="gallery__link" href="${imgObj.largeImageURL}">
+          <img
+            class="gallery__image"
+            src="${imgObj.webformatURL}"
+            alt="${imgObj.tags}"
+          />
+        </a>
+        <div class="gallery__image-overlay">
           ${this.markupInfoList(imgObj)}
         </div>
       </div>
@@ -261,3 +319,8 @@ const refs = {
 };
 
 new Gallery(refs).init();
+
+// let gallerySimple = new SimpleLightbox('.gallery a', {
+//   captionsData: 'alt',
+//   captionDelay: 250,
+// });
