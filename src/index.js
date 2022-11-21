@@ -1,4 +1,3 @@
-import * as debounce from 'lodash.debounce';
 import * as throttle from 'lodash.throttle';
 import { Notify } from 'notiflix/build/notiflix-notify-aio';
 import './css/styles.css';
@@ -8,17 +7,29 @@ import SimpleLightbox from 'simplelightbox';
 import 'simplelightbox/dist/simple-lightbox.min.css';
 
 class Gallery {
-  DEBOUNCE_DELAY = 300;
-  THROTTLE_DELAY = 300;
+  THROTTLE_DELAY = 200;
+  PER_PAGE_COUNT = 40;
+  ORIENTATION = '&orientation=horizontal';
+  SAFE_SEARCH = '&safesearch=true';
+  IMAGE_TYPE = '&image_type=photo';
 
-  constructor({ searchForm, gallery }) {
+  constructor({ searchForm, gallery }, URI) {
     this.searchForm = searchForm;
     this.gallery = gallery;
+    this.URI = URI;
     this.gallerySimple = null;
     this.totalHits = 1;
     this.page = 1;
-    this.searchValue = null;
     this.clickHandler = null;
+    this.QUERY - null;
+
+    // Если отправили запрос, но ещё не получили ответ,
+    // не нужно отправлять ещё один запрос:
+    this.isLoading = false;
+
+    // Если контент закончился, вообще больше не нужно
+    // отправлять никаких запросов:
+    this.shouldLoad = true;
   }
 
   init() {
@@ -37,11 +48,6 @@ class Gallery {
     );
 
     window.addEventListener('scroll', this.clickHandler);
-
-    // window.addEventListener(
-    //   'scroll',
-    //   debounce(this.smoothScroll.bind(this), this.DEBOUNCE_DELAY)
-    // );
   }
 
   removeScrollListeners() {
@@ -51,24 +57,25 @@ class Gallery {
   setStartValue(event) {
     this.totalHits = 1;
     this.page = 1;
-    this.searchValue = event.target.elements.searchQuery.value;
   }
 
   async onSearchForm(event) {
     event.preventDefault();
+    this.QUERY = `&q=${event.target.elements.searchQuery.value}`;
     this.removeScrollListeners();
 
-    // if (this.gallerySimple) {
-    //   // this.gallerySimple.destroy();
-    //   this.gallerySimple.refresh();
-    // }
-    // console.log('this.gallerySimple ->', Boolean(this.gallerySimple));
+    this.shouldLoad = true;
 
     await this.clearGallery();
     await this.setStartValue(event);
     await this.getImages();
     await this.addScrollListeners();
 
+    this.createSimpleLightbox();
+    this.refreshSimpleLightbox();
+  }
+
+  createSimpleLightbox() {
     if (!this.gallerySimple) {
       this.gallerySimple = new SimpleLightbox('.gallery a', {
         captionsData: 'alt',
@@ -76,11 +83,12 @@ class Gallery {
         scrollZoom: false,
       });
     }
-    this.gallerySimple.refresh();
-    // await console.log('this.gallerySimple ', this.gallerySimple);
+  }
 
-    // await this.gallerySimple.destroy();
-    // console.log('this.gallerySimple ', this.gallerySimple);
+  refreshSimpleLightbox() {
+    if (this.gallerySimple) {
+      this.gallerySimple.refresh();
+    }
   }
 
   onGalleryImageClick(event) {
@@ -92,9 +100,11 @@ class Gallery {
   }
 
   async getImages() {
-    // let imagesArr = null;
+    if (this.isLoading || !this.shouldLoad) return;
+    this.isLoading = true;
+
     try {
-      const imagesArr = await this.fetchImages(this.searchValue);
+      const imagesArr = await this.fetchImages();
 
       if (imagesArr.length === 0) {
         throw new Error(
@@ -103,40 +113,54 @@ class Gallery {
       }
 
       this.page += 1;
-      await this.markupGallery(imagesArr);
+      this.markupGallery(imagesArr);
 
-      if (this.gallerySimple) {
-        this.gallerySimple.refresh();
-      }
+      this.refreshSimpleLightbox();
+
+      this.isLoading = false;
+
+      this.checkMaxPageLoad();
     } catch (error) {
-      console.log('error 1', error.message);
       Notify.failure(error.message);
     }
   }
 
-  async fetchImages(queryName) {
+  checkMaxPageLoad() {
     if (this.page > this.totalHits) {
       this.removeScrollListeners();
+      this.shouldLoad = false;
 
       throw new Error(
         "We're sorry, but you've reached the end of search results."
       );
-      return null;
     }
+  }
+
+  async fetchImages() {
+    const PER_PAGE = `&per_page=${this.PER_PAGE_COUNT}`;
+    const PAGE = `&page=${this.page}`;
+    const URI =
+      this.URI +
+      this.ORIENTATION +
+      this.SAFE_SEARCH +
+      this.IMAGE_TYPE +
+      this.QUERY +
+      PER_PAGE +
+      PAGE;
+    console.log('URI ', URI);
     try {
-      const response = await axios.get(
-        `https://pixabay.com/api/?key=31303071-b4e5345642141d1af1d763c20&orientation=horizontal&safesearch=true&image_type=photo&per_page=40&q=${queryName}&page=${this.page}`
+      const response = await axios.get(URI);
+
+      this.totalHits = Math.floor(
+        response.data.totalHits / this.PER_PAGE_COUNT
       );
-      console.log('response axios ->', response);
+      // console.log('this.total ', this.totalHits);
+      // console.log('page ', this.page);
 
-      this.totalHits = Math.floor(response.data.totalHits / 40);
-      console.log('this.total ', this.totalHits);
-      console.log('page ', this.page);
+      // const dataArr = response.data.hits;
+      // console.log('dataArr ->', dataArr);
 
-      const dataArr = response.data.hits;
-      console.log('dataArr ->', dataArr);
-
-      return dataArr;
+      // return dataArr;
       return response.data.hits;
     } catch (error) {
       console.error(error);
@@ -317,7 +341,10 @@ const refs = {
   gallery: document.querySelector('.gallery'),
 };
 
-new Gallery(refs).init();
+const APIKey = '31303071-b4e5345642141d1af1d763c20';
+const URI = `https://pixabay.com/api/?key=${APIKey}`;
+
+new Gallery(refs, URI).init();
 
 // let gallerySimple = new SimpleLightbox('.gallery a', {
 //   captionsData: 'alt',
