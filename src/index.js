@@ -83,6 +83,7 @@ class Gallery {
       const imagesArr = await this.fetchImages();
 
       this.isLoading = false;
+
       if (imagesArr.length === 0) {
         throw new Error(
           'Sorry, there are no images matching your search query. Please try again.'
@@ -115,9 +116,11 @@ class Gallery {
     try {
       const response = await axios.get(URI);
 
-      this.totalHits = Math.floor(
-        response.data.totalHits / this.PER_PAGE_COUNT
-      );
+      this.totalHits = Math.ceil(response.data.totalHits / this.PER_PAGE_COUNT);
+
+      if (this.page === 1 && this.totalHits) {
+        Notify.success(`Hooray! We found ${response.data.totalHits} images.`);
+      }
 
       return response.data.hits;
     } catch (error) {
@@ -126,6 +129,12 @@ class Gallery {
   }
 
   checkMaxPageLoad() {
+    if (this.totalHits === 1) {
+      this.removeScrollListeners();
+      this.shouldLoad = false;
+      return;
+    }
+
     if (this.page > this.totalHits) {
       this.removeScrollListeners();
       this.shouldLoad = false;
