@@ -17,11 +17,11 @@ class Gallery {
     this.searchForm = searchForm;
     this.gallery = gallery;
     this.URI = URI;
+    this.QUERY - null;
     this.gallerySimple = null;
     this.totalHits = 1;
     this.page = 1;
     this.clickHandler = null;
-    this.QUERY - null;
 
     // Если отправили запрос, но ещё не получили ответ,
     // не нужно отправлять ещё один запрос:
@@ -54,9 +54,8 @@ class Gallery {
     window.removeEventListener('scroll', this.clickHandler);
   }
 
-  setStartValue(event) {
-    this.totalHits = 1;
-    this.page = 1;
+  onGalleryImageClick(event) {
+    event.preventDefault();
   }
 
   async onSearchForm(event) {
@@ -75,37 +74,15 @@ class Gallery {
     this.refreshSimpleLightbox();
   }
 
-  createSimpleLightbox() {
-    if (!this.gallerySimple) {
-      this.gallerySimple = new SimpleLightbox('.gallery a', {
-        captionsData: 'alt',
-        captionDelay: 250,
-        scrollZoom: false,
-      });
-    }
-  }
-
-  refreshSimpleLightbox() {
-    if (this.gallerySimple) {
-      this.gallerySimple.refresh();
-    }
-  }
-
-  onGalleryImageClick(event) {
-    event.preventDefault();
-
-    // if (!event.target.classList.contains('gallery__image')) {
-    //   return;
-    // }
-  }
-
   async getImages() {
     if (this.isLoading || !this.shouldLoad) return;
+
     this.isLoading = true;
 
     try {
       const imagesArr = await this.fetchImages();
 
+      this.isLoading = false;
       if (imagesArr.length === 0) {
         throw new Error(
           'Sorry, there are no images matching your search query. Please try again.'
@@ -117,22 +94,9 @@ class Gallery {
 
       this.refreshSimpleLightbox();
 
-      this.isLoading = false;
-
       this.checkMaxPageLoad();
     } catch (error) {
       Notify.failure(error.message);
-    }
-  }
-
-  checkMaxPageLoad() {
-    if (this.page > this.totalHits) {
-      this.removeScrollListeners();
-      this.shouldLoad = false;
-
-      throw new Error(
-        "We're sorry, but you've reached the end of search results."
-      );
     }
   }
 
@@ -147,23 +111,49 @@ class Gallery {
       this.QUERY +
       PER_PAGE +
       PAGE;
-    console.log('URI ', URI);
+
     try {
       const response = await axios.get(URI);
 
       this.totalHits = Math.floor(
         response.data.totalHits / this.PER_PAGE_COUNT
       );
-      // console.log('this.total ', this.totalHits);
-      // console.log('page ', this.page);
 
-      // const dataArr = response.data.hits;
-      // console.log('dataArr ->', dataArr);
-
-      // return dataArr;
       return response.data.hits;
     } catch (error) {
       console.error(error);
+    }
+  }
+
+  checkMaxPageLoad() {
+    if (this.page > this.totalHits) {
+      this.removeScrollListeners();
+      this.shouldLoad = false;
+
+      throw new Error(
+        "We're sorry, but you've reached the end of search results."
+      );
+    }
+  }
+
+  setStartValue(event) {
+    this.totalHits = 1;
+    this.page = 1;
+  }
+
+  createSimpleLightbox() {
+    if (!this.gallerySimple) {
+      this.gallerySimple = new SimpleLightbox('.gallery a', {
+        captionsData: 'alt',
+        captionDelay: 250,
+        scrollZoom: false,
+      });
+    }
+  }
+
+  refreshSimpleLightbox() {
+    if (this.gallerySimple) {
+      this.gallerySimple.refresh();
     }
   }
 
@@ -185,31 +175,11 @@ class Gallery {
     }
   }
 
-  smoothScroll() {
-    console.log(
-      'object',
-      document
-        .querySelector('.gallery')
-        .firstElementChild.getBoundingClientRect()
-    );
-
-    const { height: cardHeight } = document
-      .querySelector('.gallery')
-      .firstElementChild.getBoundingClientRect();
-
-    console.log('cardHeight ', cardHeight);
-    window.scrollBy({
-      top: cardHeight * 2,
-      behavior: 'smooth',
-    });
-  }
-
   clearGallery() {
     this.gallery.innerHTML = '';
   }
 
   markupGallery(dataArr) {
-    // this.gallery.append(...dataArr.map(this.markupFotoCard.bind(this)));
     this.gallery.insertAdjacentHTML(
       'beforeend',
       dataArr.map(this.markupFotoCard.bind(this)).join('')
@@ -217,25 +187,6 @@ class Gallery {
   }
 
   markupFotoCard(imgObj) {
-    // const div = document.createElement('div');
-    // div.classList.add('gallery-item');
-
-    // const divThumb = document.createElement('div');
-    // divThumb.classList.add('gallery-thumb');
-
-    // const img = document.createElement('img');
-    // img.classList.add('gallery-img');
-    // img.src = imgObj.webformatURL;
-    // img.alt = imgObj.tags;
-
-    // const divOverlay = document.createElement('div');
-    // divOverlay.classList.add('gallery-img-overlay');
-
-    // divOverlay.append(this.markupInfoList(imgObj));
-    // divThumb.append(img, divOverlay);
-    // div.append(divThumb);
-    // return div;
-
     return `<div class="gallery__item">
       <div class="gallery__thumb">
         <a class="gallery__link" href="${imgObj.largeImageURL}">
@@ -253,37 +204,6 @@ class Gallery {
   }
 
   markupInfoList({ likes, views, comments, downloads }) {
-    // const info = [
-    //   {
-    //     title: 'Likes',
-    //     infoSvg: `${svg}#icon-like`,
-    //     infoDesc: likes,
-    //   },
-    //   {
-    //     title: 'Views',
-    //     infoSvg: `${svg}#icon-view`,
-    //     infoDesc: views,
-    //   },
-    //   {
-    //     title: 'Comments',
-    //     infoSvg: `${svg}#icon-comment`,
-    //     infoDesc: comments,
-    //   },
-    //   {
-    //     title: 'Downloads',
-    //     infoSvg: `${svg}#icon-download`,
-    //     infoDesc: downloads,
-    //   },
-    // ];
-    // const ul = document.createElement('ul');
-    // ul.classList.add('list', 'info-list');
-
-    // const markupInfo = info.map(item => this.markupInfoItem(item));
-
-    // ul.append(...markupInfo);
-    // console.log('ul -> ', ul);
-    // return ul;
-
     return `<ul class="list info-list">
       <li class="info-item" title="Likes">
         <svg class="icon" width="16" height="16">
@@ -311,29 +231,6 @@ class Gallery {
       </li>
     </ul>`;
   }
-
-  markupInfoItem({ title, infoSvg, infoDesc }) {
-    const li = document.createElement('li');
-    li.classList.add('info-item');
-    li.title = title;
-
-    const svg = document.createElement('svg');
-    svg.classList.add('icon');
-    svg.setAttribute('width', '16');
-    svg.setAttribute('height', '16');
-
-    const use = document.createElement('use');
-    use.setAttribute('href', infoSvg);
-
-    const p = document.createElement('p');
-    p.classList.add('info-desc');
-    p.textContent = infoDesc;
-
-    svg.append(use);
-    li.append(svg, p);
-
-    return li;
-  }
 }
 
 const refs = {
@@ -345,8 +242,3 @@ const APIKey = '31303071-b4e5345642141d1af1d763c20';
 const URI = `https://pixabay.com/api/?key=${APIKey}`;
 
 new Gallery(refs, URI).init();
-
-// let gallerySimple = new SimpleLightbox('.gallery a', {
-//   captionsData: 'alt',
-//   captionDelay: 250,
-// });
